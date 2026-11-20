@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#174d43">
+<title>Búsqueda de Animales Ocultos</title>
+<style>
+:root{--forest:#174d43;--leaf:#347b57;--cream:#fff9e9;--water:#83c9d0;--ink:#193b34}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);background:linear-gradient(#dff3e7,#b9ded0);min-height:100vh}
+main{max-width:940px;margin:auto;padding:18px 14px 30px}
+header{text-align:center;margin-bottom:14px}
+h1{font-size:clamp(1.65rem,5vw,2.5rem);line-height:1.12;margin:0 0 7px;color:var(--forest)}
+header p{margin:0}
+.panel{background:#ffffffed;border:1px solid white;border-radius:18px;padding:14px;box-shadow:0 8px 25px #174d4318}
+.top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:8px 11px;border-radius:12px;background:#e9f5e8;font-weight:750}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:11px 14px;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid #e5a92d;outline-offset:3px}
+.primary{background:#236b4c;color:white}
+.soft{background:#e2f0e8;color:var(--forest)}
+.map-wrap{position:relative}
+.map{position:relative;min-height:430px;height:min(62vh,570px);overflow:hidden;border:4px solid white;border-radius:18px;background:linear-gradient(165deg,#a9d6a0 0 35%,#78b77e 35% 66%,#8cc6a1 66%);isolation:isolate}
+.map:before{content:"";position:absolute;left:-5%;right:-5%;top:45%;height:100px;background:#8bd0d2;transform:rotate(-8deg);border:7px solid #d1e8c2;border-radius:48%;z-index:-1}
+.map:after{content:"";position:absolute;left:10%;top:8%;width:34%;height:23%;border-radius:50%;background:#4e9565;opacity:.5;filter:blur(2px);z-index:-1}
+.path{position:absolute;left:38%;top:-12%;height:130%;width:12%;background:#d6c69a;transform:rotate(28deg);border-left:4px dashed #fff2c7;border-right:4px dashed #fff2c7;opacity:.9;z-index:-1}
+.zone{position:absolute;min-width:105px;min-height:74px;padding:8px 6px;background:#ffffffd9;border:2px solid #fff;border-radius:15px;text-align:center;box-shadow:0 4px 10px #163e3022;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#174d43}
+.zone .symbol{font-size:27px;line-height:1.1}
+.zone small{font-size:12px;font-weight:800}
+.zone.found{background:#fff4c9;border-color:#e3ad38}
+.zone:active{transform:scale(.96)}
+.z1{left:5%;top:10%}.z2{right:5%;top:12%}.z3{left:5%;top:43%}.z4{right:5%;top:44%}.z5{left:15%;bottom:7%}.z6{right:14%;bottom:7%}
+.map-title{position:absolute;left:50%;top:3%;transform:translateX(-50%);font-size:12px;font-weight:900;letter-spacing:.08em;color:#174d43;background:#ffffffb8;padding:5px 9px;border-radius:20px;white-space:nowrap}
+.tip{text-align:center;font-weight:650;margin:12px 0 0;min-height:26px}
+.progress{height:10px;background:#e3eee5;border-radius:20px;overflow:hidden;margin:8px 0 2px}
+.progress span{display:block;height:100%;width:0;background:#36875c;transition:width .25s}
+.lower{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+h2{font-size:1.1rem;margin:0 0 7px;color:var(--forest)}
+#info{min-height:90px;line-height:1.5}
+#collection{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:.85rem;background:#eaf4e9;border-radius:20px;padding:6px 9px}
+.overlay{position:absolute;inset:0;background:#123d36d9;color:white;display:flex;align-items:center;justify-content:center;text-align:center;padding:22px;z-index:5;border-radius:14px}
+.overlay[hidden]{display:none}
+.overlay-card{max-width:430px}
+.overlay h2{color:white;font-size:1.55rem}
+.overlay p{line-height:1.5}
+@media(max-width:620px){.lower{grid-template-columns:1fr}.map{min-height:470px}.zone{min-width:94px;min-height:70px}.z1{left:3%}.z2{right:3%}.z5{left:8%}.z6{right:8%}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>🦉 Búsqueda de Animales Ocultos</h1>
+<p>Explorá la reserva y descubrí especies que habitan los humedales y pastizales de la zona.</p>
+</header>
+<section class="panel">
+<div class="top">
+<div class="stats">
+<div class="pill">Hallazgos: <span id="count">0</span>/6</div>
+<div class="pill">Puntos: <span id="points">0</span></div>
+</div>
+<button class="soft" id="reset">Reiniciar búsqueda</button>
+</div>
+<div class="progress"><span id="bar"></span></div>
+<div class="map-wrap">
+<div class="map" id="map">
+<div class="path"></div>
+<div class="map-title">RESERVA NATURAL · MAPA DE EXPLORACIÓN</div>
+<button class="zone z1" data-animal="0"><span class="symbol">🌾</span><small>Pastizal</small></button>
+<button class="zone z2" data-animal="1"><span class="symbol">🌳</span><small>Monte nativo</small></button>
+<button class="zone z3" data-animal="2"><span class="symbol">💧</span><small>Humedal</small></button>
+<button class="zone z4" data-animal="3"><span class="symbol">🪷</span><small>Orilla</small></button>
+<button class="zone z5" data-animal="4"><span class="symbol">🍃</span><small>Matorrales</small></button>
+<button class="zone z6" data-animal="5"><span class="symbol">🌱</span><small>Charquita</small></button>
+<div class="overlay" id="overlay">
+<div class="overlay-card">
+<h2>¡La reserva esconde vida!</h2>
+<p>Tocá los seis sectores del mapa para encontrar animales. Cada descubrimiento te dará información sobre una especie local.</p>
+<p><strong>Tu misión:</strong> completar el registro de fauna sin salirte del mapa.</p>
+<button class="primary" id="start">Comenzar exploración</button>
+</div>
+</div>
+</div>
+</div>
+<p class="tip" id="tip" aria-live="polite">Prepará tu mirada de exploradora: ¡hay animales escondidos!</p>
+</section>
+<div class="lower">
+<section class="panel">
+<h2>🔎 Ficha del descubrimiento</h2>
+<div id="info">Cuando encuentres un animal, acá aparecerá su nombre y un dato interesante sobre él.</div>
+</section>
+<section class="panel">
+<h2>📖 Tu registro de fauna</h2>
+<div id="collection"><span class="tag">Todavía no encontraste animales.</span></div>
+<p style="margin:10px 0 0;font-size:.88rem">Consejo: observá sin perseguir, tocar ni molestar a los animales silvestres.</p>
+</section>
+</div>
+</main>
+<script>
+(() => {
+ const animals = [
+  {name:"Tero real",emoji:"🐦",place:"Pastizal",text:"Es un ave asociada a ambientes abiertos y zonas húmedas. Se alimenta de pequeños invertebrados y suele caminar por el suelo buscando comida.",fact:"En la reserva Camino de las Flores se registraron teros reales."},
+  {name:"Monjita gris",emoji:"🐦",place:"Monte nativo",text:"Es un ave de plumaje gris que suele posarse en ramas o sitios visibles. Forma parte de la diversidad de aves de los pastizales y ambientes abiertos.",fact:"La monjita gris fue mencionada entre las aves observadas en la zona."},
+  {name:"Killi (Austrolebias bellottii)",emoji:"🐟",place:"Humedal",text:"Es un pez pequeño de humedales temporarios. Sus huevos pueden resistir períodos en los que el ambiente queda sin agua, una adaptación muy particular.",fact:"Se registró el hallazgo de killis en un humedal de Camino de las Flores."},
+  {name:"Jacana",emoji:"🪶",place:"Orilla",text:"Es un ave vinculada a lagunas y bañados. Tiene dedos largos que le permiten caminar sobre plantas flotantes y buscar pequeños animales acuáticos.",fact:"La jacana aparece entre las aves identificadas en el área."},
+  {name:"Rana criolla",emoji:"🐸",place:"Matorrales",text:"Es un anfibio que depende de ambientes húmedos. Ayuda a controlar poblaciones de insectos y también forma parte de la cadena alimentaria.",fact:"Las ranas criollas fueron mencionadas entre los anfibios presentes en la reserva."},
+  {name:"Culebra ratonera",emoji:"🐍",place:"Charquita",text:"Es una serpiente no venenosa de la región. Como otros reptiles, cumple un papel ecológico al alimentarse de pequeños animales y ayudar al equilibrio del ecosistema.",fact:"Se han informado culebras ratoneras en el entorno de Camino de las Flores."}
+ ];
+ let found = new Set(), active = false;
+ const count = document.getElementById('count'), points = document.getElementById('points');
+ const info = document.getElementById('info'), collection = document.getElementById('collection');
+ const tip = document.getElementById('tip'), overlay = document.getElementById('overlay');
+ const zones = [...document.querySelectorAll('.zone')];
+ function reveal(i, button) {
+   if(!active) return;
+   if(found.has(i)){tip.textContent='¡Ese sector ya lo exploraste! Probá con otro.';return;}
+   found.add(i); button.classList.add('found');
+   button.innerHTML='<span class="symbol">'+animals[i].emoji+'</span><small>¡Encontrado!</small>';
+   count.textContent=found.size; points.textContent=found.size*10;
+   document.getElementById('bar').style.width=(found.size/6*100)+'%';
+   const a=animals[i];
+   info.innerHTML='<strong style="font-size:1.12rem">'+a.emoji+' '+a.name+'</strong><br><strong>Hábitat:</strong> '+a.place+'.<br>'+a.text+'<br><em>'+a.fact+'</em>';
+   if(found.size===1) collection.innerHTML='';
+   const tag=document.createElement('span');tag.className='tag';tag.textContent=a.emoji+' '+a.name;collection.appendChild(tag);
+   tip.textContent='¡Encontraste '+a.name+'! Sumaste 10 puntos.';
+   if(found.size===6){
+    tip.textContent='🎉 ¡Exploración completa! Encontraste las seis especies.';
+    overlay.hidden=false;
+    overlay.innerHTML='<div class="overlay-card"><h2>🌿 ¡Misión cumplida!</h2><p>Descubriste las seis especies y conseguiste <strong>60 puntos</strong>.</p><p>Conocer la fauna local es el primer paso para proteger sus hábitats.</p><button class="primary" id="again">Volver a explorar</button></div>';
+    document.getElementById('again').addEventListener('click',reset);
+   }
+ }
+ function reset(){
+  found.clear();active=true;count.textContent='0';points.textContent='0';document.getElementById('bar').style.width='0%';
+  info.textContent='Cuando encuentres un animal, acá aparecerá su nombre y un dato interesante sobre él.';
+  collection.innerHTML='<span class="tag">Todavía no encontraste animales.</span>';
+  tip.textContent='¡Explorá los seis sectores del mapa!';
+  zones.forEach((b,i)=>{b.classList.remove('found');b.innerHTML='<span class="symbol">'+['🌾','🌳','💧','🪷','🍃','🌱'][i]+'</span><small>'+['Pastizal','Monte nativo','Humedal','Orilla','Matorrales','Charquita'][i]+'</small>';});
+  overlay.hidden=true;
+ }
+ zones.forEach((b)=>b.addEventListener('click',()=>reveal(Number(b.dataset.animal),b)));
+ document.getElementById('start').addEventListener('click',reset);
+ document.getElementById('reset').addEventListener('click',()=>{active=false;overlay.hidden=false;overlay.innerHTML='<div class="overlay-card"><h2>¿Empezamos de nuevo?</h2><p>Volvé a recorrer los sectores y completá tu registro de fauna.</p><button class="primary" id="again">Comenzar</button></div>';document.getElementById('again').addEventListener('click',reset);});
+})();
+</script>
+</body>
+</html>
